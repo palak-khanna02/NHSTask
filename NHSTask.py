@@ -86,7 +86,7 @@ st.plotly_chart(chart)
 text1= '''-  Sharp increase in mid October, likely due to NHS Black History Month Campaigns   
   -  Low Registration throughout Winter months.
 - Slight increase throughout January, owing to New Year campaigns 
-- Increase going into :red[March]'''
+- Increase going into March'''
 
 
 
@@ -108,25 +108,84 @@ st.subheader('Analysing Donations by Blood Groups')
 
 
 # Plot Blood Group Distribution Registered People
+reg.fillna({'BLOOD_GROUP': 'Unknown'}, inplace=True)
 
-
-blood= px.histogram(reg, x='BLOOD_GROUP', text_auto=True, title='Blood Group Distribution Registered People')
-blood.update_traces(histfunc="count")
+blood= px.pie(reg, names='BLOOD_GROUP', title='Percentage Registered People by Blood Group')
+#blood.update_traces(histfunc="count")
 st.plotly_chart(blood)
 
+text2= '''- Maximum percentage are unknown, expect a majority of them to made no donations.
+ -  Registrations from common Blood Groups :red[O+, A+, B+] 
+  -  Discrepancies in data collection, few entries with incomplete blood types'''
 
+
+st.markdown(text2)
 
 # Plot Donation behavior by blood group 
 
-blood_don= px.pie(reg, values='NUM_DONATIONS', names='BLOOD_GROUP', title='Donation behaviour by Blood Group')
+blood_don= px.pie(reg, values='NUM_DONATIONS', names='BLOOD_GROUP', title='Percentage of Donations by Blood Group')
 st.plotly_chart(blood_don)
 
+text3 =  '''-  Donation behaviour follows a similar pattern with :red[O+, A+, B+] forming maximum donations
+  - Blood group unknown implies no donations except a few entries with incomplete blood types even after donation '''
+st.markdown(text3)
+
+# Calculate the number of donors for each blood group
+donors_per_blood_group = reg.groupby('BLOOD_GROUP')['ID'].nunique().reset_index()
+donors_per_blood_group.columns = ['BLOOD_GROUP', 'NUM_DONORS']
+
+# Calculate the total number of donations for each blood group
+donations_per_blood_group = reg.groupby('BLOOD_GROUP')['NUM_DONATIONS'].sum().reset_index()
+donations_per_blood_group.columns = ['BLOOD_GROUP', 'TOTAL_DONATIONS']
+
+# Merge the dataframes
+blood_group_data = pd.merge(donors_per_blood_group, donations_per_blood_group, on='BLOOD_GROUP')
+
+# Data for the plot
+blood_groups = blood_group_data['BLOOD_GROUP']
+num_donors = blood_group_data['NUM_DONORS']
+total_donations = blood_group_data['TOTAL_DONATIONS']
+
+# Create the figure
+blood_bar = go.Figure(data=[
+    go.Bar(name='Number of Donors', x=blood_groups, y=num_donors, marker_color='indianred'),
+    go.Bar(name='Total Donations', x=blood_groups, y=total_donations, marker_color='lightblue')
+])
+
+# Update the layout
+blood_bar.update_layout(
+    title='Number of Donors and Total Donations by Blood Group',
+    xaxis_title='Blood Group',
+    yaxis_title='Count',
+    barmode='group',
+    legend_title='Metric'
+)
+
+st.plotly_chart(blood_bar)
 # Plot Donation Patterns by Blood Group Box plot 
 
 
 blood_box = px.box(reg, x="BLOOD_GROUP", y="NUM_DONATIONS", title='Donation Patterns by Blood Group')
 st.plotly_chart(blood_box)
 
+text4 =  '''-  Most people with rare blood like :green[O- , B-, AB+ , AB-] have made a minimum of 1 donation. 
+- Rarer blood types :green[AB-, A-, B-] show fewer high-frequency donors.
+- Some donors with common blood groups :red[O+, B+] have made no donations. 
+- Very few donors have donate more than 6 times. 
+- More than 50 percent of donors in known blood group categories have donated more than 1 time '''
+
+st.markdown(text4)
+
+st.caption('Areas of Focus and Recommendations:')
+text11='''
+- Imporvement in data collection, blood groups are unknown even after donation.  
+- Increase donations from rare blood types, providing special incentives, recognition encouraging frequent donation.  
+- Partnering with Universities and workplaces to spread awareness about rare blood types    
+- Mobile donation/information camps near Emergency, encourage people accompanying patients to register due to long queues and wait times 
+  - Offering refreshments, options to donate or book a future date
+  - Free blood type tests post registration, incentivise rare types providing vouchers. '''
+
+st.markdown(text11)
 ############################
 
 st.divider()
@@ -164,25 +223,71 @@ for row, ethnicity in enumerate(reg['ETHNICITY']):
         reg['ETHNIC_GROUP'][row]= 'Other'
     
     
+
+
+# Calculate the number of donors for each ethnic group
+donors_per_ethnic_group = reg.groupby('ETHNIC_GROUP')['ID'].nunique().reset_index()
+donors_per_ethnic_group.columns = ['ETHNIC_GROUP', 'NUM_DONORS']
+
+# Calculate the total number of donations for each ethnic group
+donations_per_ethnic_group = reg.groupby('ETHNIC_GROUP')['NUM_DONATIONS'].sum().reset_index()
+donations_per_ethnic_group.columns = ['ETHNIC_GROUP', 'TOTAL_DONATIONS']
+
+# Merge the dataframes
+ethnic_group_data = pd.merge(donors_per_ethnic_group, donations_per_ethnic_group, on='ETHNIC_GROUP')
+
+# Calculate the percentage
+ethnic_group_data['PERCENTAGE_DONORS'] = (ethnic_group_data['NUM_DONORS'] /donors_per_ethnic_group['NUM_DONORS'].sum()) * 100
+ethnic_group_data['PERCENTAGE_DONATIONS'] = (ethnic_group_data['TOTAL_DONATIONS'] / donations_per_ethnic_group['TOTAL_DONATIONS'].sum()) * 100
+
+# Data for the plot
+ethnic_groups = ethnic_group_data['ETHNIC_GROUP']
+percentage_donors = ethnic_group_data['PERCENTAGE_DONORS']
+percentage_donations = ethnic_group_data['PERCENTAGE_DONATIONS']
+
+# Create the figure
+eth_bar = go.Figure(data=[
+    go.Bar(name='Percentage of Donors', x=ethnic_groups, y=percentage_donors, marker_color='indianred'),
+    go.Bar(name='Percentage of Donations', x=ethnic_groups, y=percentage_donations, marker_color='lightblue')
+])
+
+# Update the layout
+eth_bar.update_layout(
+    title='Percentage of Donors and Donations by Ethnic Group',
+    xaxis_title='Ethnic Group',
+    yaxis_title='Percentage',
+    barmode='group',
+    legend_title='Metric'
+)
+st.plotly_chart(eth_bar)
 # Plot Registered Ethnic Groups 
 
-ETH_reg_gr = px.pie(reg, names='ETHNIC_GROUP', title='Registered Ethnic Groups')
-st.plotly_chart(ETH_reg_gr)
+text5='''- Maximum registrations and donation from White Ethnic Groups.  
+- Other Ethnic groups show more proportion of registration and less contribution to donantions.'''
 
-# Plot Donation Behaviour of Ethnic Groups
-
-ETH_don_gr = px.pie(reg, values='NUM_DONATIONS', names='ETHNIC_GROUP', title='Donation Behaviour of Ethnic Groups')
-st.plotly_chart(ETH_don_gr)
+st.markdown(text5)
 
 # Create a pivot table to analyse Percentage of Donations, Rejections, Missed Appointments, No Bookings by Ethnic Groups
 table = pd.pivot_table(reg, values=['NUM_DONATIONS', 'NUM_DNAS', 'NUM_REJECTIONS', 'DID_NOT_BOOK'], columns=['ETHNIC_GROUP'], aggfunc="sum").apply(lambda x: x*100/sum(x))
-st.write(table)
+
 
 # Plot pivot table 
 stack = px.bar(table.T ,text_auto='.3s',title="Percentage of Donations, Rejections, Missed Appointments, No Bookings by Ethnic Groups")
-stack.update_traces(text= [f'{val}\u00A3' for val in table.T])
+stack.update_layout(xaxis_title='Ethnic Group',yaxis_title='Percentage')
 st.plotly_chart(stack)
 
+text6= '''- Most Groups register and book appointments, percentage of no bookings is low across all groups.  
+- No shows are mainly from Asian and Black ethnic groups followed by Other and Mixed. 
+- No shows are high across all groups '''
+
+st.markdown(text6)
+st.caption('Areas of Focus and Recommendations:')
+text12='''
+-  Targeted outreach programs for underrepresented ethnic groups partnering with community organizations, religious or cultural centers.  
+-  Investigating reasons for higher DNA rates among Asian, Black, and Mixed groups, implementing reminder systems
+-  Mobile Donation drives in areas of high concentrations of these groups. '''
+
+st.markdown(text12)
 
 #####################
 
@@ -199,39 +304,122 @@ reg['DONOR_TYPE'] = np.where(reg['NUM_DONATIONS'] > 1, 'Repeat Donor',np.where(r
 
 
 
-Age_reg = px.histogram(reg, x='AGE', title='Registered Donors by Age', text_auto=True)
-st.plotly_chart(Age_reg)
 
-Age_don=px.histogram(reg, x='AGE', y='NUM_DONATIONS',  text_auto=True, title='Donation behaviour by Ethnicity')
-st.plotly_chart(Age_don)
+# Calculate the number of donors for each age group
+donors_per_age_group = reg.groupby('AGE_GROUP')['ID'].nunique().reset_index()
+donors_per_age_group.columns = ['AGE_GROUP', 'NUM_DONORS']
 
+# Calculate the total number of donations for each age group
+donations_per_age_group = reg.groupby('AGE_GROUP')['NUM_DONATIONS'].sum().reset_index()
+donations_per_age_group.columns = ['AGE_GROUP', 'TOTAL_DONATIONS']
 
-Age_reg_gr = px.pie(reg, names='AGE_GROUP', title='Registered Age Groups')
-st.plotly_chart(Age_reg_gr)
+# Merge the dataframes
+age_group_data = pd.merge(donors_per_age_group, donations_per_age_group, on='AGE_GROUP') 
 
+# Calculate the percentage
+age_group_data['PERCENTAGE_DONORS'] = (age_group_data['NUM_DONORS'] / donors_per_age_group['NUM_DONORS'].sum()) * 100
+age_group_data['PERCENTAGE_DONATIONS'] = (age_group_data['TOTAL_DONATIONS'] / donations_per_age_group['TOTAL_DONATIONS'].sum()) * 100
 
-Age_gr_don = px.pie(reg, values='NUM_DONATIONS', names='AGE_GROUP', title='Donation Behaviour of Age Groups')
-st.plotly_chart(Age_gr_don)
+# Data for the plot
+age_groups = age_group_data['AGE_GROUP']
+percentage_donors = age_group_data['PERCENTAGE_DONORS']
+percentage_donations = age_group_data['PERCENTAGE_DONATIONS']
+
+# Create the figure
+age_bar = go.Figure(data=[
+    go.Bar(name='Percentage of Donors', x=age_groups, y=percentage_donors, marker_color='indianred'),
+    go.Bar(name='Percentage of Donations', x=age_groups, y=percentage_donations, marker_color='lightsalmon')
+])
+
+# Update the layout
+age_bar.update_layout(
+    title='Percentage of Donors and Donations by Age Group',
+    xaxis_title='Age Group',
+    yaxis_title='Percentage',
+    barmode='group',
+    legend_title='Metric'
+)
+
+st.plotly_chart(age_bar)
+
+text7='''- Young Adults and Middle ages show highest engagement and donations.  
+- Proportion of donations to donors is higher in Older Adults (45-60 and 60+) implying more repeat donors.  
+- Teenagers show very low donation counts, as individuals under 18 are often not eligible to donate blood. '''
+
+st.markdown(text7)
 
 # Box plot for age group vs. number of donations
 
 Age_box = px.box(reg, x="AGE_GROUP", y="NUM_DONATIONS", title='Donation Patterns by Age Group')
+Age_box.update_xaxes(categoryorder='array', categoryarray= ['<18', '18-30', '30-45', '45-60', '60+'])
 st.plotly_chart(Age_box)
 
+text8='''- Median is 0 for Young Adults and Middle ages indicating at least 50 percent of donors did not donate.  
+- More consistent and repeat donors from higher age groups.'''
+
+st.markdown(text8)
 table_age = pd.pivot_table(reg, values=['NUM_DONATIONS', 'NUM_DNAS', 'NUM_REJECTIONS', 'DID_NOT_BOOK'], columns=['AGE_GROUP'], aggfunc="sum").apply(lambda x: x*100/sum(x))
-st.write(table_age)
 
 stack_age = px.bar(table_age.T ,text_auto='.3s',title="Percentage of Donations, Rejections, Missed Appointments, No Bookings by Age Groups")
 stack.update_traces(text= [f'{val}\u00A3' for val in table_age.T])
 st.plotly_chart(stack_age)
 
+stack_age.update_layout(
+    xaxis_title='Age Group',
+    yaxis_title='Percentage',
+    legend_title='Metric'
+)
+
+text9='''- Older Adults more successful in keeping appointments.  
+- Rejection rates in 60+ groups lower than Teenagers and Adults. 
+- Maximum no shows from Young Adults, common reasons could be university or work commitments.  '''
+st.markdown(text9)
 # Calculate percentages for age groups
 age_group_counts = reg.groupby(['AGE_GROUP', 'DONOR_TYPE']).size().unstack().fillna(0)
 age_group_percentages = age_group_counts.div(age_group_counts.sum(axis=1), axis=0) * 100
 
+
+# Create the figure
+agetype_bar = go.Figure(data=[
+    go.Bar(name='Non-Donors', x=age_groups, y=age_group_counts['Non-Donor'], marker_color='indianred'),
+    go.Bar(name='One-Time Donors', x=age_groups, y=age_group_counts['One-Time Donor'], marker_color='lightsalmon'),
+    go.Bar(name='Repeat-Donors', x=age_groups, y=age_group_counts['Repeat Donor'], marker_color='lightblue'),
+])
+
+# Update the layout
+agetype_bar.update_layout(
+    title='Number of Non-Donors, One-time Donors and Repeat-Donors by Age Group',
+    xaxis_title='Age Group',
+    yaxis_title='Count',
+    barmode='group',
+    legend_title='Metric'
+)
+
+st.plotly_chart(agetype_bar)
+text10='''
+- Older Adults form a more reliable donor base, high percentage of repeat donors. 
+- More than 50%  of registered Young Adults and Middle aged adults are Non-Donors.
+- Even though Number of donors is greater in Young and Middle ages Older age groups are more likely to be repeat donors (plot below). '''
+
+st.markdown(text10)
+
 stack_type=px.bar(age_group_percentages, text_auto='.2s')
+stack_type.update_layout(
+    xaxis_title='Age Group',
+    yaxis_title='Percentage',
+    legend_title='Metric')
+
 st.plotly_chart(stack_type)
 
+st.caption('Areas of Focus and Recommendations:')
+text13='''
+ - Further investigation into why Non-donors or One-time donors do not donate. 
+ - Conversion of young donors, partnering with Schools and Universities to spread awareness and importance of donation. 
+ - Incentives to University students like discounts/freebies for donating  
+ - Partnering with Corporate social resposibility departments in private organisations to hold donation drives within corporations. 
+ - Offer pre-screening or free general health checkup to encourage doantion and decrease chances of rejection. '''
+
+st.markdown(text13)
 
 ######################
 
@@ -270,60 +458,59 @@ slots_by_area = slots.groupby('DC')['SLOT'].sum()
 
 area= area_data.merge(slots_by_area.rename('Available_Slots'), left_index=True, right_index=True)
 
-st.dataframe(area)
-# Define steps for funnel
-funnel_steps = ['Available Appointments', 'Appointments Attended', 'Successful Donations']
 
-fig2 = go.Figure()
+# Create the figure
+area_bar = go.Figure(data=[
+    go.Bar(name='Appointments Booked', x=area.index, y=area['Appointments_Booked'], marker_color='indianred'),
+    go.Bar(name='Appointments Attended', x=area.index, y=area['Appointments_Attended'], marker_color='lightsalmon'),
+    go.Bar(name='Successful Donations', x=area.index, y=area['Successful_Donations'], marker_color='lightblue')
+])
 
-fig2.add_trace(go.Funnel(
-    name = 'Canterbury',
-    y=funnel_steps,
-    x=[area.loc['CANTERBURY','Available_Slots'], area.loc['CANTERBURY','Appointments_Attended'], area.loc['CANTERBURY','Successful_Donations']],
-     textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'))
+area_bar.update_layout(
+    title='Blood Donation success by Area',
+    xaxis_title='Area',
+    yaxis_title='Value',
+    legend_title='Metric'
+)
 
-fig2.add_trace(go.Funnel(
-    name = 'Cornwall',
-    orientation = "h",
-    y=funnel_steps,
-    x=[area.loc['CORNWALL','Available_Slots'],  area.loc['CORNWALL','Appointments_Attended'], area.loc['CORNWALL','Successful_Donations']],
-    textposition = "inside",
-    textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'))
+st.plotly_chart(area_bar)
+text15='''
+- Lewisham significantly outperforms other areas in terms of appointments booked, attended, and successful donations  
+- High No show rate in Lewisham could suggest other problems, possible over-scheduling, staff shortage
+- Durham: Shows the second-highest performance, but with a significant gap
+- Cornwall, Preston, and Canterbury: Have relatively similar, lower levels of performance  
+- Gap between appointments attended and successful donations is smaller, suggesting that once people attend, they're likely to complete a successful donation.
+'''
+st.markdown(text15)
 
-
-fig2.add_trace(go.Funnel(
-    name = 'Preston',
-    orientation = "h",
-    y=funnel_steps,
-    x=[area.loc['PRESTON','Available_Slots'],area.loc['PRESTON','Appointments_Attended'], area.loc['PRESTON','Successful_Donations']],
-    textposition = "inside",
-    textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'))
-
-    
-st.plotly_chart(fig2)
-
-fig3=go.Figure()
-
-fig3.add_trace(go.Funnel(
-    name = 'Lewisham',
-    orientation = "h",
-    y=funnel_steps,
-    x=[area.loc['LEWISHAM','Available_Slots'],area.loc['LEWISHAM','Appointments_Attended'], area.loc['LEWISHAM','Successful_Donations']],
-    textposition = "inside",
-    textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'))
-
-fig3.add_trace(go.Funnel(
-    name = 'Durham',
-    orientation = "h",
-    y=funnel_steps,
-    x=[area.loc['DURHAM','Available_Slots'],  area.loc['DURHAM','Appointments_Attended'], area.loc['DURHAM','Successful_Donations']],
-    textposition = "inside",
-    textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'))
+slots_bar = go.Figure(data=[
+    go.Bar(name='Appointments Booked', x=area.index, y=area['Appointments_Booked'], marker_color='indianred'),
+    go.Bar(name='Slot Availibility', x=area.index, y=area['Available_Slots'], marker_color='lightsalmon' )
+])
 
 
-    
-st.plotly_chart(fig3)
+st.plotly_chart(slots_bar)
+
+text18='''
+- Slot availibity in Lewisham and Durham is lower compared to previously booked appointments
+- Resources can be diverted to high performing areas '''
+
+st.markdown(text18)
+
+st.caption('Areas of Focus and Recommendations:')
+text14='''
+- Review the booking processes in Lewisham to avoid overbooking.  
+- Implement a waitlist system to fill cancelled appointments quickly.  
+- Parnering with local employers in each areas to offer employees paid time off (few hours)for blood donation.  
+- Offer incentives linke gift cards if donors bring friends or family for donation.    
+ '''
+
+st.markdown(text14)
+###########################
+
 st.divider()
+
+###########################
 st.header("Ro Type Donation Patterns")
 
 # Filter for Ro type blood donors
@@ -341,328 +528,24 @@ repeat_donor_counts_ro_actual = ro_donors_made_donation['DONOR_TYPE'].value_coun
 Ro_donor_type=px.bar(repeat_donor_counts_ro_actual, text_auto='.4s')
 st.plotly_chart(Ro_donor_type)
 
-Ro_donor_age=px.bar(ro_donors_df['AGE_GROUP'])
+text16='''- Most Ro Donors who register have donated. 
+- More than 50 percent are repeat donors 
+- Contrary to previous age patterns, Most Ro donors are Young or Middle aged (plot below)'''
+st.markdown(text16)
+Ro_donor_age=px.bar(ro_donors_df['AGE_GROUP'].value_counts())
 Ro_donor_age.update_xaxes(categoryorder='array', categoryarray= ['<18', '18-30', '30-45', '45-60', '60+'])
 st.plotly_chart(Ro_donor_age)
-
-# st.subheader('Canterbury')
-
-# # Create funnel plot for each area
-# Cant_fun = go.Figure(go.Funnel(
-#         y=funnel_steps,
-#         x=[area.loc['CANTERBURY','Available_Slots'], area.loc['CANTERBURY','Appointments_Booked'], area.loc['CANTERBURY','Appointments_Attended'], area.loc['CANTERBURY','Successful_Donations']],
-#         textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'
-#     ))
-
-
-# Cant_fun.update_layout(title="Funnel Plot for Blood Donation Process in Canterbury")
-# st.plotly_chart(Cant_fun)
-# st.divider()
-# st.subheader('Cornwall')
-
-# # Create funnel plot for each area
-# Corn_fun = go.Figure(go.Funnel(
-#         y=funnel_steps,
-#         x=[area.loc['CORNWALL','Available_Slots'], area.loc['CORNWALL','Appointments_Booked'], area.loc['CORNWALL','Appointments_Attended'], area.loc['CORNWALL','Successful_Donations']],
-#         textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'
-#     ))
-
-
-# Corn_fun.update_layout(title="Funnel Plot for Blood Donation Process in Cornwall")
-# st.plotly_chart(Corn_fun)
-# st.divider()
-# st.subheader('Durham')
-
-# # Create funnel plot for each area
-# Durh_fun = go.Figure(go.Funnel(
-#         y=funnel_steps,
-#         x=[area.loc['DURHAM','Available_Slots'], area.loc['DURHAM','Appointments_Booked'], area.loc['DURHAM','Appointments_Attended'], area.loc['DURHAM','Successful_Donations']],
-#         textinfo="value+percent previous+percent initial", hoverinfo='x+y+text+percent initial+percent previous'
-#     ))
-
-
-# Durh_fun.update_layout(title="Funnel Plot for Blood Donation Process in Durham")
-# st.plotly_chart(Durh_fun)
-
-
-
-
-# # ## Determine No. Appointments
-
-# # ## Analysing Missed Appointments and Rejections
-
-# # In[433]:
-
-
-# plt.figure(figsize=(12, 6))
-# sns.histplot(data=reg, x= 'NUM_DNAS', bins=20)
-# plt.title('Distribution of Missed Appointments')
-# plt.xlabel('Number of Missed Appointments')
-# plt.ylabel('Frequency')
-# plt.grid(True)
-# plt.show()
-
-
-# # In[23]:
-
-
-# # Distribution of rejections
-# plt.figure(figsize=(12, 6))
-# sns.histplot(data= reg, x= 'NUM_REJECTIONS', bins=20)
-# plt.title('Distribution of Rejections')
-# plt.xlabel('Number of Rejections')
-# plt.ylabel('Frequency')
-# plt.grid(True)
-# plt.show()
-
-
-# # In[25]:
-
-
-# # Impact of distance on missed appointments 
-# distance_cols = ['DISTANCE_CORNWALL', 'DISTANCE_CANTERBURY', 'DISTANCE_PRESTON', 'DISTANCE_LEWISHAM', 'DISTANCE_DURHAM']
-# fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-
-# for i, col in enumerate(distance_cols):
-#     sns.scatterplot(data=reg, x=col, y='NUM_DNAS', ax=axes[i//3, i%3])
-#     axes[i//3, i%3].set_title(f'Impact of Distance on Donations: {col.split("_")[1]}')
-
-# plt.tight_layout()
-# plt.show()
-
-
-# # ## Analysing 2 variables together 
-
-# # In[168]:
-
-
-# plt.figure(figsize=(15,8))
-# blood_ethnicity = pd.crosstab(reg['BLOOD_GROUP'], reg['ETHNIC_GROUP'],normalize="index")
-# sns.heatmap(blood_ethnicity, annot=True, fmt=".3f", cmap="YlGnBu")
-# plt.title('Blood Group by Ethnicity')
-# plt.show()
-
-
-# # In[166]:
-
-
-# blood_ethnicity.plot(kind='bar', 
-#                     stacked=True, 
-                    
-#                     figsize=(12, 6))
-
-# plt.legend(loc="upper left", ncol=2)
-# plt.xlabel("Blood Group")
-# plt.ylabel("Ethnic Proportion")
-# plt.show()
-
-
-# # In[177]:
-
-
-# plt.figure(figsize=(15,8))
-# dns_ethnicity = pd.crosstab(reg['NUM_DNAS'], reg['ETHNIC_GROUP'], normalize='index')
-# sns.heatmap(dns_ethnicity, annot=True, fmt=".2f", cmap="YlGnBu")
-# plt.title('Did Not Show by Ethnicity')
-# plt.show()
-
-
-# # In[179]:
-
-
-# dns_ethnicity.plot(kind='bar', 
-#                     stacked=True, 
-                    
-#                     figsize=(12, 6))
-
-# plt.legend(loc="upper left", ncol=2)
-# plt.xlabel("Did Not Show")
-# plt.ylabel("Ethnic Proportion")
-# plt.show()
-
-
-# # In[435]:
-
-
-# plt.figure(figsize=(15,8))
-# dns_ethnicg = pd.crosstab(reg['NUM_DNAS'], reg['ETHNIC_GROUP'])
-# sns.heatmap(dns_ethnicg, annot=True, fmt="d", cmap="YlGnBu")
-# plt.title('Did Not Show by Ethnicity')
-# plt.show()
-
-
-# # ## Idea: Analyse Unknown blood types 
-
-# # In[171]:
-
-
-# plt.figure(figsize=(15,8))
-# sns.jointplot(data=reg, x='BLOOD_GROUP', y='NUM_DONATIONS')
-
-# plt.title('Blood Group and Number of donations ')
-# plt.show()
-
-
-# # In[271]:
-
-
-# reg.fillna({'BLOOD_GROUP': 'Unknown'}, inplace=True)
-# unknown_blood_type = reg[reg['BLOOD_GROUP'] == 'Unknown']
-
-
-# outcome_counts = {
-#     'Did Not Show': unknown_blood_type['NUM_DNAS'].sum(),
-#     'Donate': unknown_blood_type['NUM_DONATIONS'].sum(),
-#     'Rejected': unknown_blood_type['NUM_REJECTIONS'].sum(),
-# }
-
-# unknown_blood_type
-
-
-# # In[268]:
-
-
-
-
-
-# # In[267]:
-
-
-# # Convert to DataFrame for plotting
-# outcome_df = pd.DataFrame(list(outcome_counts.items()), columns=['Outcome', 'Count'])
-
-# # Plot the data
-# plt.figure(figsize=(10, 6))
-# sns.barplot(data=outcome_df, x='Outcome', y='Count')
-# plt.title('Outcomes for Unknown Blood Types')
-# plt.ylabel('Count')
-# plt.xlabel('Outcome')
-# plt.show()
-
-
-# # In[273]:
-
-
-# eth=reg.groupby('ETHNICITY', group_keys=True)[['NUM_DNAS']].apply(lambda x: x.sum())
-# eth
-
-
-# # In[283]:
-
-
-# reg.groupby('ETHNICITY', group_keys=True).apply(lambda x: x.count())
-
-
-# # ## Slot Availability and Utilization 
-
-# # In[32]:
-
-
-# # Count available slots by donor center and month
-# slots_by_center = slots.groupby([slots['SESDATE'].dt.to_period('M'), 'DC']).size().unstack(fill_value=0)
-
-# # Plot availability
-# slots_by_center.plot(kind='line', figsize=(12, 6))
-# plt.title('Available Slots Over Time by Donor Center')
-# plt.xlabel('Month')
-# plt.ylabel('Number of Available Slots')
-# plt.grid(True)
-# plt.show()
-
-
-# # In[88]:
-
-
-# slots.set_index('SESDATE').resample('W').size().plot(title='Slots Over Time', markersize=10, marker='o')
-
-
-# # In[87]:
-
-
-# slots_by_center = slots.groupby([slots['SESDATE'].dt.to_period('W'), 'DC']).size().unstack(fill_value=0)
-
-# #slots_by_center.plot(kind='line',title='Slots Over Time', markersize=8, marker='o', figsize=(12, 6))
-
-
-# pts= slots_by_center.resample('W').asfreq()
-
-# fig, ax = plt.subplots(figsize=(12, 12))
-# slots_by_center.plot(kind='line', ax=ax)
-# pts.plot(marker='o', ax=ax, lw=0, color='black', legend=False)
-
-
-# pad = 10
-# for idx, val in pts.stack().items():
-#     ax.annotate(val, (idx[0], val+pad))
-
-# ax.grid(axis='y')
-
-# for row, x in enumerate(slots_by_center.index):
-#     pass
-#     #print(row)
-#     #print(x)
-#     #plt.text(x,df2[row],df2[str(row)], fontsize=12, bbox=dict(facecolor='blue', alpha=0.1), ha= 'left', va= 'baseline')
-
-
-
-# # In[115]:
-
-
-# # Facet grid for ethnicity, blood group, and number of donations
-# g = sns.FacetGrid(reg, col="BLOOD_GROUP", row="ETHNIC_GROUP", margin_titles=True, height=4)
-# g.map(sns.boxplot, "NUM_DONATIONS")
-# g.add_legend()
-# plt.show()
-
-
-# # In[91]:
-
-
-# from mpl_toolkits.mplot3d import Axes3D
-
-# fig = plt.figure(figsize=(10, 8))
-# ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(reg['DISTANCE_DURHAM'], reg['AGE'], reg['NUM_DONATIONS'])
-# ax.set_xlabel('Distance to Durham (miles)')
-# ax.set_ylabel('Age')
-# ax.set_zlabel('Number of Donations')
-# plt.title('3D Scatter Plot: Distance, Age, and Number of Donations')
-# plt.show()
-
-
-# # In[127]:
-
-
-# from pandas.plotting import scatter_matrix 
-  
-# # selecting three numerical features 
-# features = ['AGE', 'DISTANCE_DURHAM', 'NUM_DONATIONS'] 
-   
-# # plotting the scatter matrix 
-# # with the features 
-# scatter_matrix(reg[features]) 
-# plt.show() 
-
-
-# # In[126]:
-
-
-# reg
-
-
-# # In[ ]:
-
-
-
-
-# # In[ ]:
-
-
-
-
-
-# # In[ ]:
-
-
-
-
+st.caption('Areas of Focus and Recommendations and Further Work:')
+text17='''
+- More campaigns targeted at people with Black heritage and targeting a younger audience for social resposibility  
+   - Eg. NHSBTs partnership with Marvel Studios' Black Panther: Wakanda Forever
+- Campaigns in areas with high concentration of people of Black heritage, urging them to get tested and become donors
+- Volunteer programs for young and frequent donors to conduct social outreach through volunteering at donations camps, spreading awareness through social media  
+**Further Work:**  
+- Research into reasons for No shows and not donating more than once
+- Analysing post donoation surveys of donor experience
+- Hypothesis testing 
+
+'''
+st.markdown(text17)
+st.divider()
