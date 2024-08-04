@@ -13,7 +13,8 @@ from datetime import date
 import pandas as pd 
 import numpy as np
 import streamlit as st
-
+import plotly.express as px
+import plotly.graph_objects as go
 
 
 st.title('NHS Blood Donation Task')
@@ -24,8 +25,8 @@ st.title('NHS Blood Donation Task')
 
 datapath = '/Users/admin/Downloads/'
 
-reg = pd.read_csv(datapath+'registrations.csv')
-slots =pd.read_csv(datapath+'slots.csv')
+reg = pd.read_csv('./registrations.csv')
+slots =pd.read_csv('./slots.csv')
 
 
 # Format Date and Time columns for easier manipulation
