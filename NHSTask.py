@@ -501,7 +501,7 @@ st.caption('Areas of Focus and Recommendations:')
 text14='''
 - Review the booking processes in Lewisham to avoid overbooking.  
 - Implement a waitlist system to fill cancelled appointments quickly.  
-- Parnering with local employers in each areas to offer employees paid time off (few hours)for blood donation.  
+- Partnering with local employers in each areas to offer employees paid time off (few hours)for blood donation.  
 - Offer incentives linke gift cards if donors bring friends or family for donation.    
  '''
 
