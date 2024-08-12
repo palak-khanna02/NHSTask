@@ -17,7 +17,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-st.title('NHS Blood Donation Task')
+st.title('Blood Donor Analysis')
 
 
 
